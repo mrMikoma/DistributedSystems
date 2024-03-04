@@ -1,14 +1,16 @@
 import xml.etree.ElementTree as ET
 from datetime import datetime
 from http.server import BaseHTTPRequestHandler, HTTPServer
+from socketserver import ThreadingMixIn
 import json
 
 ###
 # Documentation used:
 # https://docs.python.org/3/library/xml.etree.elementtree.html
 # https://docs.python.org/3/library/json.html
-# 
+# https://docs.python.org/3/library/http.server.html
 # https://docs.python.org/3/library/datetime.html
+# https://docs.python.org/3/library/socketserver.html
 ###
 
 # Global variables
@@ -79,6 +81,9 @@ def getNotes(topic):
     # Return the notes
     return {'notes': notes}
 
+class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
+    pass
+
 class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
     def do_POST(self):
         content_length = int(self.headers['Content-Length'])
@@ -116,9 +121,9 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
             self.wfile.write(b"Not found")
 
 # Function to run the server
-def run(server_class=HTTPServer, handler_class=SimpleHTTPRequestHandler, port=PORT):
+def run(server_class=ThreadedHTTPServer, handler_class=SimpleHTTPRequestHandler, port=PORT):
     server_address = ('', port)
-    httpd = server_class(server_address, handler_class)
+    httpd = ThreadedHTTPServer(server_address, handler_class)
     print(f"Starting server on port {port}...")
     httpd.serve_forever()
 

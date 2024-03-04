@@ -4,7 +4,7 @@ import requests
 ###
 # Documentation used:
 # https://docs.python.org/3/library/json.html
-# https://docs.python.org/3/library/urllib.request.html
+# https://requests.readthedocs.io/en/latest/
 ###
 
 # Global variables
