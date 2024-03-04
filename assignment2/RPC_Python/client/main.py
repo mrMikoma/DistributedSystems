@@ -40,21 +40,21 @@ def main():
             print("Notes retrieved successfully")
         elif choice == '3':
             # Ask for input
-            topic = input("Enter Wikipedia topic to query: ")
+            term = input("Enter Wikipedia term to query: ")
             
             # Handle the input
-            print("Retrieving Wikipedia query...")
-            print(topic)            
-            results = lib.queryWikipedia(topic)
+            print("Retrieving Wikipedia query...")          
+            results = lib.queryWikipedia(term)
             
             # Print the results
             lib.printData(results)
             print("Data retrieved successfully")     
 
             # Ask for input and validate
-            index = int(input("Enter which index to add to the topic: "))
+            topic = input("Enter topic to add the note to: ")
+            index = int(input("Enter which index you want to add to topic (or -1 to cancel): "))
             selected_result = results[index] if 0 <= index < len(results) else None
-
+            
             # Add the note
             if selected_result:
                 text = selected_result['title'] + " " + selected_result['link']
