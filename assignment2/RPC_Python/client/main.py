@@ -2,7 +2,8 @@ import lib
 
 # Simple command line interface for the client
 def main():
-    lib.run()   # Declare the server
+    # Declare the server
+    lib.run()   
     
     # Main loop
     while True:
@@ -54,6 +55,7 @@ def main():
             index = int(input("Enter which index to add to the topic: "))
             selected_result = results[index] if 0 <= index < len(results) else None
 
+            # Add the note
             if selected_result:
                 text = selected_result['title'] + " " + selected_result['link']
                 print(text) # debug

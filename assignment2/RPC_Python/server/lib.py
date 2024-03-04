@@ -82,6 +82,7 @@ def getNotes(topic):
     # Return the notes as JSON
     return {'notes': notes}
 
+# Function to query Wikipedia
 def queryWikipedia(topic):
     # Declare variables
     session = requests.Session()

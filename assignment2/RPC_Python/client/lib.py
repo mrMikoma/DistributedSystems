@@ -49,6 +49,7 @@ def printNotes(notes):
 
 ### WIKIPEDIA FUNCTIONS ###
 
+# Function to query Wikipedia
 def queryWikipedia(topic):
     # Validate input
     if not topic:
@@ -62,6 +63,7 @@ def queryWikipedia(topic):
     # Return the response
     return data
 
+# Function to print the Wikipedia data
 def printData(results):
     # Print the results with index number
     index = 0
@@ -73,7 +75,7 @@ def printData(results):
         index += 1
     return
 
-
+# Function to run the client
 def run(server_url=SERVER_URL):
     # Create the server object
     global SERVER
