@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package chat;
+
+service ChatService {
+  // RPC for sending a private message to a user
+  rpc SendPrivateMessage(PrivateMessage) returns (Status) {}
+
+  // RPC for getting all private messages between two users
+  rpc GetPrivateMessages(PrivateMessageRequest) returns (stream Message) {}
+}
+
+message PrivateMessage {
+  string sender_id = 1;
+  string recipient_id = 2;
+  string content = 3;
+}
+
+message PrivateMessageRequest {
+  string sender_id = 1; 
+  string recipient_id = 2;
+}
+
+message Message {
+  string user_id = 1;
+  string content = 2;
+  int64 timestamp = 3; 
+}
+
+message Status {
+  bool success = 1;
+  string message = 2;
+}
