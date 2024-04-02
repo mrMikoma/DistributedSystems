@@ -1,6 +1,10 @@
 import grpc
 import time
+import redis
 from concurrent import futures
+import os
+import json
+from dotenv import load_dotenv
 
 import chat_pb2
 import chat_pb2_grpc
@@ -13,7 +17,9 @@ import chat_pb2_grpc
 
 # CONSTANTS
 MAX_WORKERS = 10
+REDIS_HOST = 'localhost'
 
+load_dotenv()  # Load environment variables from .env
 
 # Maintain active users, channels, and their subscriptions
 users = {}
@@ -33,39 +39,64 @@ class ChatServiceServicer(chat_pb2_grpc.ChatServiceServicer):
                 return chat_pb2.Status(success=False, message="Sender and recipient cannot be the same")
             
             # Check if the message is empty
-            if request.message == "":
+            if request.content == "":
                 return chat_pb2.Status(success=False, message="Message cannot be empty")
-
-            # Send message to the user
-            #users[request.recipient_id].add(request.message)
-
-            #print("Viestit: " + users[request.recipient_id])  # Debug
+            
+            # Connect to Redis
+            redis_client = redis.Redis(host=REDIS_HOST, port=6379, db=0, password=os.getenv('REDIS_PASSWORD'))
+            #redis_client.flushall() # Debug (Clear all keys in Redis)
+            
+            # Store the message in Redis
+            redis_key = f"private_messages:{request.recipient_id}"  # Key format: private_messages:<recipient_id>
+            redis_object = json.dumps({ # JSON object to store in Redis
+                "user_id": request.sender_id,
+                "content": request.content,
+                "timestamp": int(time.time())
+            })
+            redis_client.rpush(redis_key, redis_object) # Append the message to the Redis list
 
             # Return status
             return chat_pb2.Status(success=True, message="Message sent successfully")
         except Exception as e:
-            print(e)
+            print(e)  # Debug
             return chat_pb2.Status(success=False, message="Error occurred")
         
     
+    import redis
+
     def GetPrivateMessages(self, request, context):
-        print("GetPrivateMessages") # Debug
-        
+        print("GetPrivateMessages")  
+
         try:
-            # Check if the user exists
-            if request.user_id not in users:
-                return chat_pb2.Messages()
+            # Connect to Redis
+            redis_client = redis.Redis(host=REDIS_HOST, port=6379, db=0, password=os.getenv('REDIS_PASSWORD'))
+
+            # Check if the users exists
+            if request.sender_id not in users and request.recipient_id not in users: 
+                return chat_pb2.Status(success=False, message="User does not exist")
+
+            # Construct the Redis keys for both directions of the conversation
+            key1 = f"private_messages:{request.sender_id}"  # Where the user is the recipient
+            key2 = f"private_messages:{request.recipient_id}" # Where the user is the sender
+
+            # Fetch messages from Redis using LRANGE
+            messages = redis_client.lrange(key1, 0, -1) + redis_client.lrange(key2, 0, -1)
             
-            # Return messages
-            return chat_pb2.Messages(messages=users[request.user_id])
+            # Parse messages only between the sender and recipient
+            messages = [message for message in messages if json.loads(message)["user_id"] == request.sender_id or json.loads(message)["user_id"] == request.recipient_id]
+
+            # Yield individual messages
+            for message_json in messages:
+                # Parse the JSON object
+                message_dict = json.loads(message_json)
+                
+                # Yield the message
+                yield chat_pb2.Message(user_id=message_dict["user_id"], content=message_dict["content"], timestamp=message_dict["timestamp"]) 
+
         except Exception as e:
-            print(e)
-            return chat_pb2.Messages()
-        
-        
-        # Return messages
-        return chat_pb2.Message()
-       
+            print(e) 
+            return chat_pb2.Status(success=False, message="Error occurred")
+
 # Function for initializing data structures     
 def initialize():
     # Initialize users
