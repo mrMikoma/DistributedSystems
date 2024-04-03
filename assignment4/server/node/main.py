@@ -11,29 +11,29 @@ import chat_pb2_grpc
 
 ###
 # References:
-# https://grpc.io/docs/languages/python/basics/
-#
+# - https://grpc.io/docs/languages/python/basics/
+# - https://redis.io/docs/connect/clients/python/
+# - 
 ###
 
 # CONSTANTS
 MAX_WORKERS = 10
 REDIS_HOST = 'localhost'
+CHANNELS = {} 
 
 load_dotenv()  # Load environment variables from .env
 
-# Maintain active users, channels, and their subscriptions
-users = {}
-channels = {} 
+### TODO:
+# - Add private chat with bidirectional communication
+# - 
+#
+###
 
 class ChatServiceServicer(chat_pb2_grpc.ChatServiceServicer):
     def SendPrivateMessage(self, request, context):
+        print("SendPrivateMessage") # Debug
+        
         try:
-            print("SendPrivateMessage") # Debug
-
-            # Check if the users exist
-            if request.sender_id not in users or request.recipient_id not in users:
-                return chat_pb2.Status(success=False, message="User does not exist")
-            
             # Check if the sender and recipient are the same
             if request.sender_id == request.recipient_id:
                 return chat_pb2.Status(success=False, message="Sender and recipient cannot be the same")
@@ -49,7 +49,7 @@ class ChatServiceServicer(chat_pb2_grpc.ChatServiceServicer):
             # Store the message in Redis
             redis_key = f"private_messages:{request.recipient_id}"  # Key format: private_messages:<recipient_id>
             redis_object = json.dumps({ # JSON object to store in Redis
-                "user_id": request.sender_id,
+                "sender_id": request.sender_id,
                 "content": request.content,
                 "timestamp": int(time.time())
             })
@@ -60,9 +60,6 @@ class ChatServiceServicer(chat_pb2_grpc.ChatServiceServicer):
         except Exception as e:
             print(e)  # Debug
             return chat_pb2.Status(success=False, message="Error occurred")
-        
-    
-    import redis
 
     def GetPrivateMessages(self, request, context):
         print("GetPrivateMessages")  
@@ -70,10 +67,6 @@ class ChatServiceServicer(chat_pb2_grpc.ChatServiceServicer):
         try:
             # Connect to Redis
             redis_client = redis.Redis(host=REDIS_HOST, port=6379, db=0, password=os.getenv('REDIS_PASSWORD'))
-
-            # Check if the users exists
-            if request.sender_id not in users and request.recipient_id not in users: 
-                return chat_pb2.Status(success=False, message="User does not exist")
 
             # Construct the Redis keys for both directions of the conversation
             key1 = f"private_messages:{request.sender_id}"  # Where the user is the recipient
@@ -83,7 +76,8 @@ class ChatServiceServicer(chat_pb2_grpc.ChatServiceServicer):
             messages = redis_client.lrange(key1, 0, -1) + redis_client.lrange(key2, 0, -1)
             
             # Parse messages only between the sender and recipient
-            messages = [message for message in messages if json.loads(message)["user_id"] == request.sender_id or json.loads(message)["user_id"] == request.recipient_id]
+            #messages = [message for message in messages if json.loads(message)["user_id"] == request.sender_id or json.loads(message)["user_id"] == request.recipient_id]
+            messages = [message for message in messages if json.loads(message)["sender_id"] in {request.sender_id, request.recipient_id}]
 
             # Yield individual messages
             for message_json in messages:
@@ -91,7 +85,81 @@ class ChatServiceServicer(chat_pb2_grpc.ChatServiceServicer):
                 message_dict = json.loads(message_json)
                 
                 # Yield the message
-                yield chat_pb2.Message(user_id=message_dict["user_id"], content=message_dict["content"], timestamp=message_dict["timestamp"]) 
+                yield chat_pb2.Message(sender_id=message_dict["sender_id"], content=message_dict["content"], timestamp=message_dict["timestamp"]) 
+
+        except Exception as e:
+            print(e) 
+            return chat_pb2.Status(success=False, message="Error occurred")
+        
+    def SendChannelMessage(self, request, context):
+        print("SendChannelMessage")
+        
+        try: 
+            # Check if the channel exists
+            if request.channel_id not in CHANNELS:
+                return chat_pb2.Status(success=False, message="Channel does not exist")
+            
+            # Check if the message is empty
+            if request.content == "":
+                return chat_pb2.Status(success=False, message="Message cannot be empty")
+            
+            # Connect to Redis
+            redis_client = redis.Redis(host=REDIS_HOST, port=6379, db=0, password=os.getenv('REDIS_PASSWORD'))
+            #redis_client.flushall() # Debug (Clear all keys in Redis)
+            
+            # Store the message in Redis
+            redis_key = f"channel_messages:{request.channel_id}"  # Key format: channel_messages:<channel_id>
+            redis_object = json.dumps({ # JSON object to store in Redis
+                "sender_id": request.sender_id,
+                "content": request.content,
+                "timestamp": int(time.time())
+            })
+            # ZADD for Sorted Set to store messages in order of timestamp
+            redis_client.zadd(redis_key, {redis_object: int(time.time())}) # Append the message to the Redis sorted set
+            
+            return chat_pb2.Status(success=True, message="Message sent successfully")
+        
+        except Exception as e:
+            print(e)
+            return chat_pb2.Status(success=False, message="Error occurred")
+        
+    def GetChannelMessages(self, request, context):
+        print("GetChannelMessages")  
+
+        try:
+            # Declare last timestamp
+            last_timestamp = 0
+            
+            # Connect to Redis
+            redis_client = redis.Redis(host=REDIS_HOST, port=6379, db=0, password=os.getenv('REDIS_PASSWORD'))
+
+            # Construct the Redis key for the channel
+            key = f"channel_messages:{request.channel_id}"  # Key format: channel_messages:<channel_id>
+            
+            # Initial fetch
+            messages = redis_client.zrangebyscore(key, last_timestamp, '+inf', withscores=True)
+            
+            # Yield initially fetched messages
+            for message, timestamp in messages: 
+                # Yield the message
+                message_dict = json.loads(message)
+                yield chat_pb2.Message(sender_id=message_dict["sender_id"], content=message_dict["content"], timestamp=int(timestamp))
+                
+                # Store the last timestamp
+                last_timestamp = timestamp
+
+            # Continuous streaming loop
+            while True:
+                messages = redis_client.zrangebyscore(key, last_timestamp + 1, '+inf', withscores=True)  
+
+                for message, timestamp in messages:
+                    message_dict = json.loads(message)
+                    yield chat_pb2.Message(sender_id=message_dict["sender_id"], content=message_dict["content"], timestamp=int(timestamp))
+                    
+                    # Store the last timestamp
+                    last_timestamp = timestamp
+
+                time.sleep(1)  # Sleep for 1 second before fetching the next message
 
         except Exception as e:
             print(e) 
@@ -99,15 +167,10 @@ class ChatServiceServicer(chat_pb2_grpc.ChatServiceServicer):
 
 # Function for initializing data structures     
 def initialize():
-    # Initialize users
-    users["user1"] = set()
-    users["user2"] = set()
-    users["user3"] = set()
-    
-    # Initialize channels
-    channels["general"] = set()
-    channels["random"] = set()
-    channels["private"] = set()
+    # Initialize CHANNELS
+    CHANNELS["general"] = set()
+    CHANNELS["coding"] = set()
+    CHANNELS["random"] = set()
     return 0
 
 def serve():

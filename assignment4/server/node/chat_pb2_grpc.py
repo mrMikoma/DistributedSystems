@@ -24,6 +24,16 @@ class ChatServiceStub(object):
                 request_serializer=chat__pb2.PrivateMessageRequest.SerializeToString,
                 response_deserializer=chat__pb2.Message.FromString,
                 )
+        self.SendChannelMessage = channel.unary_unary(
+                '/chat.ChatService/SendChannelMessage',
+                request_serializer=chat__pb2.ChannelMessage.SerializeToString,
+                response_deserializer=chat__pb2.Status.FromString,
+                )
+        self.GetChannelMessages = channel.unary_stream(
+                '/chat.ChatService/GetChannelMessages',
+                request_serializer=chat__pb2.ChannelMessageRequest.SerializeToString,
+                response_deserializer=chat__pb2.Message.FromString,
+                )
 
 
 class ChatServiceServicer(object):
@@ -37,7 +47,21 @@ class ChatServiceServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def GetPrivateMessages(self, request, context):
-        """RPC for getting all private messages between two users
+        """RPC for getting all private messages between two users (server-side streaming)
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def SendChannelMessage(self, request, context):
+        """RPC for sending a message to a channel
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GetChannelMessages(self, request, context):
+        """RPC for getting channel messages (server-side streaming)
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -54,6 +78,16 @@ def add_ChatServiceServicer_to_server(servicer, server):
             'GetPrivateMessages': grpc.unary_stream_rpc_method_handler(
                     servicer.GetPrivateMessages,
                     request_deserializer=chat__pb2.PrivateMessageRequest.FromString,
+                    response_serializer=chat__pb2.Message.SerializeToString,
+            ),
+            'SendChannelMessage': grpc.unary_unary_rpc_method_handler(
+                    servicer.SendChannelMessage,
+                    request_deserializer=chat__pb2.ChannelMessage.FromString,
+                    response_serializer=chat__pb2.Status.SerializeToString,
+            ),
+            'GetChannelMessages': grpc.unary_stream_rpc_method_handler(
+                    servicer.GetChannelMessages,
+                    request_deserializer=chat__pb2.ChannelMessageRequest.FromString,
                     response_serializer=chat__pb2.Message.SerializeToString,
             ),
     }
@@ -96,6 +130,40 @@ class ChatService(object):
             metadata=None):
         return grpc.experimental.unary_stream(request, target, '/chat.ChatService/GetPrivateMessages',
             chat__pb2.PrivateMessageRequest.SerializeToString,
+            chat__pb2.Message.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def SendChannelMessage(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/chat.ChatService/SendChannelMessage',
+            chat__pb2.ChannelMessage.SerializeToString,
+            chat__pb2.Status.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def GetChannelMessages(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_stream(request, target, '/chat.ChatService/GetChannelMessages',
+            chat__pb2.ChannelMessageRequest.SerializeToString,
             chat__pb2.Message.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

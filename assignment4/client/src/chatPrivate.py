@@ -58,7 +58,7 @@ def getPrivateMessages(user_id):
     messages = stub.GetPrivateMessages(request)
 
     # Collect messages with timestamps
-    message_list = [(message.timestamp, message.user_id, message.content) for message in messages]
+    message_list = [(message.timestamp, message.sender_id, message.content) for message in messages]
     
     # If no messages are found, print a message and return
     if not message_list:
@@ -70,9 +70,9 @@ def getPrivateMessages(user_id):
 
     # Print messages with formatted timestamps
     print("")
-    for timestamp, user_id, content in message_list:
+    for timestamp, sender_id, content in message_list:
         dt_object = datetime.fromtimestamp(timestamp)
-        print(f"[{dt_object.strftime('%Y-%m-%d %H:%M')}] {user_id}: {content}") 
+        print(f"[{dt_object.strftime('%Y-%m-%d %H:%M')}] {sender_id}: {content}") 
     
     return 0
 
