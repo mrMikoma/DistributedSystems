@@ -17,6 +17,9 @@ def main():
     # Ask for the username
     USER_ID = input("\nEnter your username: ")
     
+    # Initial server connection
+    connectServer()
+    
     while True:
         printMenu()
         option = input("Enter an option: ")
@@ -27,7 +30,8 @@ def main():
         elif option == "3":
             getPrivateMessages(USER_ID)
         elif option == "4":
-            connectToChatChannel()
+            printChannelMenu() # create rpc for getting channels
+            connectToChatChannel(USER_ID)
         elif option == "5":
             disconnectServer()
         elif option == "6":

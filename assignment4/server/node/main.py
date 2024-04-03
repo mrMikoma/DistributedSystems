@@ -25,8 +25,8 @@ load_dotenv()  # Load environment variables from .env
 
 ### TODO:
 # - Add private chat with bidirectional communication
-# - 
-#
+# - Add function to list all channels
+# - Improve client connection closing handling
 ###
 
 class ChatServiceServicer(chat_pb2_grpc.ChatServiceServicer):
@@ -117,6 +117,7 @@ class ChatServiceServicer(chat_pb2_grpc.ChatServiceServicer):
             # ZADD for Sorted Set to store messages in order of timestamp
             redis_client.zadd(redis_key, {redis_object: int(time.time())}) # Append the message to the Redis sorted set
             
+            # Return status
             return chat_pb2.Status(success=True, message="Message sent successfully")
         
         except Exception as e:
@@ -124,46 +125,51 @@ class ChatServiceServicer(chat_pb2_grpc.ChatServiceServicer):
             return chat_pb2.Status(success=False, message="Error occurred")
         
     def GetChannelMessages(self, request, context):
-        print("GetChannelMessages")  
+            print("GetChannelMessages")  
 
-        try:
-            # Declare last timestamp
-            last_timestamp = 0
-            
-            # Connect to Redis
-            redis_client = redis.Redis(host=REDIS_HOST, port=6379, db=0, password=os.getenv('REDIS_PASSWORD'))
-
-            # Construct the Redis key for the channel
-            key = f"channel_messages:{request.channel_id}"  # Key format: channel_messages:<channel_id>
-            
-            # Initial fetch
-            messages = redis_client.zrangebyscore(key, last_timestamp, '+inf', withscores=True)
-            
-            # Yield initially fetched messages
-            for message, timestamp in messages: 
-                # Yield the message
-                message_dict = json.loads(message)
-                yield chat_pb2.Message(sender_id=message_dict["sender_id"], content=message_dict["content"], timestamp=int(timestamp))
+            try:
+                # Declare last timestamp
+                last_timestamp = 0
                 
-                # Store the last timestamp
-                last_timestamp = timestamp
+                # Connect to Redis
+                redis_client = redis.Redis(host=REDIS_HOST, port=6379, db=0, password=os.getenv('REDIS_PASSWORD'))
 
-            # Continuous streaming loop
-            while True:
-                messages = redis_client.zrangebyscore(key, last_timestamp + 1, '+inf', withscores=True)  
-
-                for message, timestamp in messages:
+                # Construct the Redis key for the channel
+                key = f"channel_messages:{request.channel_id}"  # Key format: channel_messages:<channel_id>
+                
+                # Initial fetch
+                messages = redis_client.zrangebyscore(key, last_timestamp, '+inf', withscores=True)
+                
+                # Yield initially fetched messages
+                for message, timestamp in messages: 
+                    # Yield the message
                     message_dict = json.loads(message)
                     yield chat_pb2.Message(sender_id=message_dict["sender_id"], content=message_dict["content"], timestamp=int(timestamp))
                     
                     # Store the last timestamp
                     last_timestamp = timestamp
 
-                time.sleep(1)  # Sleep for 1 second before fetching the next message
+                # Continuous streaming loop
+                while True:
+                    # Fetch messages from Redis using ZRANGEBYSCORE
+                    messages = redis_client.zrangebyscore(key, last_timestamp + 1, '+inf', withscores=True)  
 
-        except Exception as e:
-            print(e) 
-            return chat_pb2.Status(success=False, message="Error occurred")
+                    # Yield messages
+                    for message, timestamp in messages:
+                        message_dict = json.loads(message)
+                        yield chat_pb2.Message(sender_id=message_dict["sender_id"], content=message_dict["content"], timestamp=int(timestamp))
+                        
+                        # Store the last timestamp
+                        last_timestamp = timestamp
+
+                    time.sleep(1)  # Sleep for 1 second before fetching the next message
+                    
+                # Return status
+                return chat_pb2.Status(success=True, message="Channel connection closed")
+
+            except Exception as e:
+                print(e) 
+                return chat_pb2.Status(success=False, message="Error occurred")
 
 # Function for initializing data structures     
 def initialize():

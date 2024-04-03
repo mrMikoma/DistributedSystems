@@ -3,12 +3,6 @@ import chat_pb2
 import chat_pb2_grpc
 from datetime import datetime
 
-###
-# TODO:
-# - Fix query for private messages
-# -
-###
-
 def sendPrivateMessage(user_id):
     # Ask for the username of the person to send the message to
     recipient_id = input("Enter the username of the person you want to send a message to: ")
