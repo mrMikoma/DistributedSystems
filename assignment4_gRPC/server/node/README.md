@@ -34,6 +34,12 @@ Before you begin, ensure you have the following installed on your system:
    pip install -r requirements.txt
    ```
 
+4. **Initialize proto**
+
+   ```bash
+   python3 -m grpc_tools.protoc -Iprotos --python_out=server/node --grpc_python_out=server/node protos/chat.proto
+   ```
+
 4. **Build Docker Image:**
    Run the following command to build the Docker image:
    ```bash

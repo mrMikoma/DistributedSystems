@@ -37,13 +37,13 @@ Before you begin, ensure you have the following installed on your system:
 4. **Build Docker Image:**
    Run the following command to build the Docker image:
    ```bash
-   docker build -t server .
+   docker build -t client .
    ```
 
 5. **Run Docker Container:**
    Execute the following command to run the Docker container:
    ```bash
-   docker run -p 4000:80 server
+   docker run -p 4000:80 client
    ```
 
    This command maps port 4000 of the host to port 80 of the Docker container. Adjust the port mapping as needed.

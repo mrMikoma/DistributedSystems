@@ -1,8 +1,7 @@
 from src.menu import *
-from src.connect import *
-#from src.chatPrivate import *
+from src.connectRPC import *
+from src.chatPrivate import *
 from src.chatChannel import *
-import sys
 
 ###
 # References:
@@ -19,32 +18,29 @@ def main():
     USER_ID = input("\nEnter your username: ")
     
     # Initial server connection
-    connect_server(USER_ID)
+    connectServer()
     
     while True:
-        print_menu()
+        printMenu()
         option = input("Enter an option: ")
         if option == "1":
-            connect_server(USER_ID)
+            connectServer()
         elif option == "2":
-            print("This feature is not implemented yet.")
-            #sendPrivateMessage(USER_ID)
+            sendPrivateMessage(USER_ID)
         elif option == "3":
-            print("This feature is not implemented yet.")
-            #getPrivateMessages(USER_ID)
+            getPrivateMessages(USER_ID)
         elif option == "4":
-            print_channel_menu()
-            connect_chat_channel(USER_ID)
+            printChannelMenu() # create rpc for getting channels
+            connectToChatChannel(USER_ID)
         elif option == "5":
-            disconnect_server()
+            disconnectServer()
         elif option == "6":
-            disconnect_server()
+            disconnectServer()
             break
         else:
             print("Invalid option. Please try again.")
     
     print("\nGoodbye!")
-    sys.exit(0)
     return 0
 
 main()

@@ -1,4 +1,6 @@
-from src.connect import *
+from src.connectRPC import *
+import chat_pb2
+import chat_pb2_grpc
 from datetime import datetime
 
 def sendPrivateMessage(user_id):
