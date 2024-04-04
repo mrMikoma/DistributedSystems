@@ -2,20 +2,20 @@
 FROM python:3.12.2-bookworm
 
 # Set the working directory in the container
-WORKDIR /worker
+WORKDIR /server
 
 # Copy only the requirements file to leverage Docker cache
-COPY requirements.txt /worker/
+COPY requirements.txt /server/
 
 # Create and activate a virtual environment
 RUN python3 -m venv venv
-ENV PATH="/worker/venv/bin:$PATH"
+ENV PATH="/server/venv/bin:$PATH"
 
 # Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the rest of the application code
-COPY . /worker/
+COPY . /server/
 
 # Create a non-root user
 RUN useradd -m nonrootuser
