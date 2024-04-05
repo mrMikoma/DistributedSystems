@@ -1,15 +1,11 @@
-# Using python 3.12.2-bookworm as base image (change according to used Python version)
-FROM python:3.12.2-bookworm
+# Using python 3.12 as base image
+FROM python:3.12
 
 # Set the working directory in the container
-WORKDIR /server
+WORKDIR /server/
 
 # Copy only the requirements file to leverage Docker cache
-COPY requirements.txt /server/
-
-# Create and activate a virtual environment
-RUN python3 -m venv venv
-ENV PATH="/server/venv/bin:$PATH"
+COPY requirements.txt .
 
 # Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
@@ -22,4 +18,4 @@ RUN useradd -m nonrootuser
 USER nonrootuser
 
 # Run main.py when the container launches
-CMD ["python3", "main.py"]
+CMD ["python3", "./main.py"]

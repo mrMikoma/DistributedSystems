@@ -28,6 +28,7 @@ def connect_server(user_id):
             print(e)
 
 def get_client():
+    global CLIENT_SOCKET
     if CLIENT_SOCKET is not None:
         return CLIENT_SOCKET
     else:

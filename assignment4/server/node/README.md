@@ -43,7 +43,7 @@ Before you begin, ensure you have the following installed on your system:
 5. **Run Docker Container:**
    Execute the following command to run the Docker container:
    ```bash
-   docker run -p 4000:80 server
+   docker run -p 65432:65432 server
    ```
 
    This command maps port 4000 of the host to port 80 of the Docker container. Adjust the port mapping as needed.
