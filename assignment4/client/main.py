@@ -1,14 +1,8 @@
 from src.menu import *
 from src.connect import *
-#from src.chatPrivate import *
+from src.chatPrivate import *
 from src.chatChannel import *
 import sys
-
-###
-# References:
-# 
-#
-###
 
 def main():
     print("\n###########################")
@@ -27,17 +21,13 @@ def main():
         if option == "1":
             connect_server(USER_ID)
         elif option == "2":
-            print("This feature is not implemented yet.")
-            #sendPrivateMessage(USER_ID)
+            connect_chat_private(USER_ID)
         elif option == "3":
-            print("This feature is not implemented yet.")
-            #getPrivateMessages(USER_ID)
-        elif option == "4":
             print_channel_menu()
             connect_chat_channel(USER_ID)
-        elif option == "5":
+        elif option == "4":
             disconnect_server()
-        elif option == "6":
+        elif option == "5":
             disconnect_server()
             break
         else:

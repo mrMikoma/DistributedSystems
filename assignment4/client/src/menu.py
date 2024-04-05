@@ -1,11 +1,10 @@
 # Print main menu
 def print_menu():
     print("\n1. Connect to server")
-    print("2. Send private message")
-    print("3. See private messages")
-    print("4. Connect to chat channel")
-    print("5. Disconnect from server")
-    print("6. Exit program")
+    print("2. Send private messages")
+    print("3. Connect to chat channel")
+    print("4. Disconnect from server")
+    print("5. Exit program")
     return 0 
 
 # TODO: Implement server call for getting available channels

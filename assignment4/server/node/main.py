@@ -1,4 +1,5 @@
 from src.channel import Channel
+from src.private import Private
 import os
 import socket
 import threading
@@ -79,8 +80,17 @@ def process_message(client_user_id, message_dict):
             print(f"Channel '{message_dict['channel_id']}' does not exist.")
             return 1
     elif message_dict['type'] == 'private': # Handle private messages
-        print("Private messages not supported")
-        return 1
+        if message_dict.get('action') == 'join':  # Check for 'join' action
+            Private.join_chat(client_user_id, message_dict) # Join the chat
+            Private.broadcast_recent_messages(client_user_id, clients[client_user_id], message_dict) # Broadcast recent messages to the new client
+        elif message_dict.get('action') == 'leave':  # Check for 'leave' action
+            Private.leave_chat(client_user_id, message_dict) # Leave the chat
+        elif message_dict.get('action') == 'message':
+            Private.store_message(client_user_id, message_dict) # Store the message in Redis
+            Private.broadcast_to_user(clients, message_dict) # Broadcast the message to the recipient
+        else: # Handle unsupported actions
+            print("Action not supported")
+            return 1
     elif message_dict['type'] == 'system': # Handle system messages
         print("System messages not supported")
         return 1
@@ -89,10 +99,7 @@ def process_message(client_user_id, message_dict):
         return 1
     return 0
 
-def get_clients():
-    return clients
-
-# Server function
+# Main server function
 def serve():
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.bind((HOST, PORT))

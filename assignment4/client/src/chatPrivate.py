@@ -1,70 +1,118 @@
 from src.connect import *
-from datetime import datetime
+import socket
+import threading
+import json
+import time
 
-def sendPrivateMessage(user_id):
-    # Ask for the username of the person to send the message to
-    recipient_id = input("Enter the username of the person you want to send a message to: ")
-    content = input("Enter the message you want to send: ")
-    
-    # Create a channel stub
-    try:
-        client = getClient()
-        stub = chat_pb2_grpc.ChatServiceStub(client)
-    except Exception as e:
-        print("Error: Could not send message to server")
-        print(e)
-        return 1
-    
-    # Send the message to the server
-    request = chat_pb2.PrivateMessage(
-        sender_id=user_id,
-        recipient_id=recipient_id,
-        content=content
-    )
-    
-    # Handle the response
-    response = stub.SendPrivateMessage(request)
-    if response.success:
-        print("Message sent successfully") # Debug
-        return 0
-    else:
-        print("Error: " + response.message)
-        return 1
+### References:
+# - https://docs.python.org/3.12/library/socket.html
+# - https://docs.python.org/3.12/library/threading.html
+# - https://docs.python.org/3.12/library/time.html
+###
 
-def getPrivateMessages(user_id):
-    # Ask for the username of the person to get the messages from
-    recipient_id = input("Enter username of the person you want to get messages from: ")
-    
-    # Cet RPC client
-    client = getClient()
-    if client == 1:
-        return 1
-    
-    # Create a channel stub
-    stub = chat_pb2_grpc.ChatServiceStub(client)
-    
-    request = chat_pb2.PrivateMessageRequest(
-        sender_id=user_id, 
-        recipient_id=recipient_id
-    )
-    messages = stub.GetPrivateMessages(request)
+# Receive messages from the channel
+def receive_messages(client_socket):
+    while True:
+        try:
+            # Receive message from the server
+            data = client_socket.recv(1024).decode()
+            if not data:
+                print("Server connection closed.")
+                break
+            
+            #print(data) # Debug
 
-    # Collect messages with timestamps
-    message_list = [(message.timestamp, message.sender_id, message.content) for message in messages]
-    
-    # If no messages are found, print a message and return
-    if not message_list:
-        print("\nNo messages found")
-        return 0
+            # Parse the message
+            message_dict = json.loads(data)
+            
+            # Handle different message types
+            if message_dict['type'] == 'private':
+                if message_dict['action'] == 'message':
+                # Parse the timestamp
+                    timestamp = time.localtime(message_dict['timestamp'])
+                    message_dict['timestamp'] = time.strftime("%H:%M:%S", timestamp)
+                    print(f"[{message_dict['timestamp']}] {message_dict['sender_id']}: {message_dict['content']}")
+                else:
+                    print(f"Unknown channel action: {message_dict['action']}")
+            else:
+                print(f"Unknown message type: {message_dict['type']}")
 
-    # Sort by timestamp in ascending order
-    message_list.sort(key=lambda item: item[0])
-
-    # Print messages with formatted timestamps
-    print("")
-    for timestamp, sender_id, content in message_list:
-        dt_object = datetime.fromtimestamp(timestamp)
-        print(f"[{dt_object.strftime('%Y-%m-%d %H:%M')}] {sender_id}: {content}") 
+        except (ConnectionError, json.JSONDecodeError) as e:
+            print(f"Error receiving messages: {e}")
+            break
     
     return 0
 
+# Send messages to the channel 
+def send_message(client_socket, sender_id, recipient_id):
+    while True:
+        # Get user input
+        content = input()  # Get user input
+        
+        # Handle empty message
+        if not content:
+            continue
+        
+        # Handle exit command
+        if content.lower() == 'exit':
+            break
+
+        # Create message object
+        message = json.dumps({
+            "type": "private",
+            "action": "message",
+            "sender_id": sender_id,
+            "recipient_id": recipient_id,
+            "content": content,
+        })
+
+        # Send message to the server
+        client_socket.sendall(message.encode())
+        
+    return 0
+
+def manage_private(client_socket, user_id, recipient_id, action):
+    # Check if the action is valid
+    if action not in ("join", "leave"):
+        raise ValueError("Invalid action. Must be 'join' or 'leave'.")
+
+    # Send the message to the server
+    message = json.dumps({
+        "type": "private",
+        "action": action,
+        "sender_id": user_id,
+        "recipient_id": recipient_id,
+    })
+    client_socket.sendall(message.encode())
+
+    return 0 
+
+def connect_chat_private(user_id):
+    # Ask for the recipient ID
+    recipient_id = input("Enter recipient name: ")
+    
+    # Get socket connection
+    client_socket = get_client()
+    
+    # Connect to the channel
+    manage_private(client_socket, user_id, recipient_id, "join")
+    
+    # Print information about the channel
+    print(f"\nConnected to private chat with {recipient_id}")
+    print("Type 'exit' to leave the chat\n")
+    
+    # Start thread to receive messages
+    receive_thread = threading.Thread(target=receive_messages, args=(client_socket, ))
+    receive_thread.start()
+
+    # Send thread to send messages
+    send_thread = threading.Thread(target=send_message, args=(client_socket, user_id, recipient_id))
+    send_thread.start() 
+    send_thread.join() # Wait for the send thread to finish
+
+    # Disconnect from the channel
+    manage_private(client_socket, user_id, recipient_id, "leave") # Leave the channel
+    
+    # Return
+    print("\nDisconnected from channel")
+    return 0
