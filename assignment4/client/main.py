@@ -13,8 +13,9 @@ def main():
     USER_ID = input("\nEnter your username: ")
     
     # Initial server connection
-    connect_server(USER_ID)
-    
+    if connect_server(USER_ID) == 0:
+        pass
+        
     while True:
         print_menu()
         option = input("Enter an option: ")

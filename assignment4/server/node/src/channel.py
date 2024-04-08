@@ -16,7 +16,6 @@ from dotenv import load_dotenv
 
 # CONSTANTS (Environment)
 load_dotenv()  # Load environment variables from .env   
-REDIS_HOST = 'localhost'
 
 # Global variables
 channels = {    
@@ -34,7 +33,7 @@ class Channel:
     def store_message(channel_id, message_dict):
         try:
             # Connect to Redis
-            redis_client = redis.Redis(host=REDIS_HOST, port=6379, db=0, password=os.getenv('REDIS_PASSWORD'))
+            redis_client = redis.Redis(host=os.getenv('REDIS_HOST'), port=6379, db=0, password=os.getenv('REDIS_PASSWORD'))
             
             # Store the message in Redis
             redis_key = f"channel_messages:{message_dict['channel_id']}"  # Key format: channel_messages:<channel_id>
@@ -56,7 +55,7 @@ class Channel:
     @staticmethod
     def broadcast_recent_messages(channel_id, new_client_conn):
         # Connect to Redis
-        redis_client = redis.Redis(host=REDIS_HOST, port=6379, db=0, password=os.getenv('REDIS_PASSWORD'))
+        redis_client = redis.Redis(host=os.getenv('REDIS_HOST'), port=6379, db=0, password=os.getenv('REDIS_PASSWORD'))
         
         # Timestamp for 1 day ago 
         time_ago = int(time.time()) - 86400  

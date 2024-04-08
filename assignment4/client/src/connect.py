@@ -1,5 +1,9 @@
 import socket
 
+### References:
+# - https://docs.python.org/3.12/library/socket.html
+###
+
 # GLOBAL VARIABLES
 HOST = 'localhost'     
 PORT = 65432           
@@ -12,7 +16,7 @@ def connect_server(user_id):
     USER_ID = user_id
     
     while True:
-        HOST = input("Enter the server IP: ")
+        HOST = input("Enter the server IP (localhost)): ")
 
         try:
             CLIENT_SOCKET = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
